@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom'; 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'; 
 import { toast } from 'react-hot-toast'; 
@@ -26,7 +26,7 @@ export default function AnimeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate(); 
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth(); 
+  const { isAuthenticated, user } = useAuth(); 
 
   const [isImageError, setIsImageError] = useState(false);
   const [visibleReviews, setVisibleReviews] = useState(3);
@@ -57,6 +57,36 @@ export default function AnimeDetailPage() {
     queryFn: () => getRecommendations(id).then((res) => res.data),
   });
   const recommendations = recsResponse?.data || [];
+
+  // Fetch data watchlist user untuk sinkronisasi nilai awal di modal
+  const { data: userWatchlistResponse } = useQuery({
+    queryKey: ["watchlist", user?.id],
+    queryFn: () => {
+      // Menghindari pemanggilan jika user belum login
+      if (!user?.id) return null;
+      // Gunakan endpoint getAllWatchlists atau sesuaikan dengan endpoint getByUserId kamu jika ada
+      return queryClient.getQueryData(["watchlist"]) || null;
+    },
+    enabled: isAuthenticated && !!user?.id
+  });
+
+  // Efek untuk mengisi nilai default modal jika anime ini sudah ada di watchlist user
+  useEffect(() => {
+    if (isModalOpen && animeResponse?.data) {
+      const animeIdInt = parseInt(id, 10);
+      // Cari apakah anime ini sudah ada di dalam cache daftar watchlist kamu
+      const existingItem = userWatchlistResponse?.data?.all?.find(item => item.anime_id === animeIdInt) || 
+                           userWatchlistResponse?.data?.find(item => item.anime_id === animeIdInt);
+      
+      if (existingItem) {
+        setWatchlistStatus(existingItem.status || "Plan to Watch");
+        setEpisodesWatched(existingItem.episodes_watched || 0);
+      } else {
+        setWatchlistStatus("Plan to Watch");
+        setEpisodesWatched(0);
+      }
+    }
+  }, [isModalOpen, animeResponse, id, userWatchlistResponse]);
 
   // 4. LOGIKA MUTASI TOMBOL WATCHLIST
   const watchlistMutation = useMutation({
@@ -405,7 +435,7 @@ export default function AnimeDetailPage() {
                   min="0"
                   max={anime.episodes || 999}
                   value={episodesWatched}
-                  onChange={(e) => setEpisodesWatched(e.target.value)} // FIX 1: Menyimpan state string/angka murni agar form tidak pecah
+                  onChange={(e) => setEpisodesWatched(e.target.value)} 
                   className="w-full bg-white dark:bg-[#152232] border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#3db4f2] dark:focus:border-[#3db4f2] transition-colors font-medium"
                 />
               </div>
@@ -422,11 +452,17 @@ export default function AnimeDetailPage() {
               <button
                 type="button"
                 disabled={watchlistMutation.isPending}
-                onClick={() => watchlistMutation.mutate({
-                  anime_id: parseInt(id, 10),
-                  status: watchlistStatus,
-                  episodes_watched: parseInt(episodesWatched, 10) || 0 // FIX 2: Dikirim tepat sebagai integer murni ke parameter 'episodes_watched' backend kamu
-                })}
+                onClick={() => {
+                  // Mengonversi secara aman input dari string form menjadi Integer murni
+                  const finalEpisodes = parseInt(episodesWatched, 10);
+                  
+                  watchlistMutation.mutate({
+                    anime_id: parseInt(id, 10),
+                    status: watchlistStatus,
+                    // FIX: Kirim data yang sudah di-parse bersih atau fallback angka 0 jika string kosong / NaN
+                    episodes_watched: isNaN(finalEpisodes) ? 0 : finalEpisodes
+                  });
+                }}
                 className="px-5 py-2 text-xs font-bold uppercase tracking-wider bg-[#3db4f2] hover:bg-[#2ca3e2] disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white rounded transition-colors shadow-md"
               >
                 {watchlistMutation.isPending ? "Saving..." : "Save"}
