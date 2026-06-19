@@ -1,12 +1,13 @@
 import axios from 'axios';
-import useAuthStore from '../store/authStore'; // FIX: Ubah dari named import {} menjadi default import sesuai file kamu
+import useAuthStore from '../store/authStore'; 
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+const API = axios.create({
+  // Murni baca dari ENV Vercel tanpa backup localhost bawa sial
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-api.interceptors.request.use((config) => {
+API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -14,7 +15,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-api.interceptors.response.use(
+API.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
@@ -37,4 +38,4 @@ api.interceptors.response.use(
   }
 );
 
-export default api;
+export default API; // 👈 Export huruf besar
