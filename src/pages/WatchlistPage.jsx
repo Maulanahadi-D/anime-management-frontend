@@ -6,7 +6,6 @@ import EmptyState from '../components/ui/EmptyState';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 
-// Menambahkan komponen SVG inline sederhana untuk tombol view switcher
 const TableIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
 );
@@ -44,7 +43,6 @@ export default function WatchlistPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 sm:py-10 text-slate-700 dark:text-slate-200">
       
-      {/* Header & View Switcher */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <div className="flex items-center gap-2">
@@ -74,7 +72,6 @@ export default function WatchlistPage() {
         </div>
       </div>
 
-      {/* Navigasi Tab */}
       <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 dark:border-slate-800/80 mb-6 overflow-x-auto scrollbar-none">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -95,7 +92,6 @@ export default function WatchlistPage() {
         })}
       </div>
 
-      {/* Konten */}
       {items.length === 0 ? (
         <div className="bg-white dark:bg-[#151F2E] rounded-xl border border-slate-100 dark:border-none p-4 shadow-sm">
           <EmptyState
@@ -114,6 +110,8 @@ export default function WatchlistPage() {
                 <tr className="bg-slate-50/70 dark:bg-[#1c283a]/40 border-b border-slate-100 dark:border-slate-800/50 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   <th className="py-3 px-4 w-12 text-center">#</th>
                   <th className="py-3 px-4">Title</th>
+                  <th className="py-3 px-4 hidden sm:table-cell">Type</th>
+                  <th className="py-3 px-4 hidden md:table-cell">Studio</th>
                   <th className="py-3 px-4 w-32 text-center">Progress</th>
                   <th className="py-3 px-4 w-20 text-center">Aksi</th>
                 </tr>
@@ -122,16 +120,39 @@ export default function WatchlistPage() {
                 {items.map((item, index) => {
                   const anime = item.anime || item; 
                   return (
-                    <tr key={item.id} className="group hover:bg-slate-50/40 dark:hover:bg-[#1e2b3e]/20 transition-colors">
+                    <tr key={item.id || index} className="group hover:bg-slate-50/40 dark:hover:bg-[#1e2b3e]/20 transition-colors">
                       <td className="py-3.5 px-4 text-center text-xs font-bold text-slate-300 dark:text-slate-600">{index + 1}</td>
                       <td className="py-3.5 px-4">
-                        <Link to={`/anime/${anime.id || item.anime_id}`} className="text-sm font-bold text-slate-700 dark:text-slate-200 hover:text-[#3DB4F2] transition-colors">{anime.title}</Link>
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-12 bg-slate-100 dark:bg-[#0d1728] rounded overflow-hidden shadow-sm shrink-0 border border-slate-200/40 dark:border-slate-800 flex items-center justify-center">
+                            {anime.cover_image_url ? (
+                              <img src={anime.cover_image_url} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="text-[8px] text-slate-400 font-bold">No Pic</div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <Link to={`/anime/${anime.id || item.anime_id}`} className="text-sm font-bold text-slate-700 dark:text-slate-200 hover:text-[#3DB4F2] transition-colors line-clamp-1">
+                              {anime.title || 'Untitled Anime'}
+                            </Link>
+                          </div>
+                        </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center text-xs font-bold text-slate-600 dark:text-slate-300">
-                        {item.episodes_watched || 0} / {anime.episodes || '?'}
+                      <td className="py-3.5 px-4 hidden sm:table-cell text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800/60 rounded text-[10px] uppercase font-bold">{anime.type || 'TV'}</span>
+                      </td>
+                      <td className="py-3.5 px-4 hidden md:table-cell text-xs font-medium text-slate-400 truncate max-w-[140px]">{anime.studio || 'Unknown Studio'}</td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="inline-flex items-center justify-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 px-2 py-1 rounded border border-slate-100 dark:border-slate-800/50 min-w-[70px]">
+                          <span>{item.progress || item.episodes_watched || 0}</span>
+                          <span className="text-slate-300 dark:text-slate-600 font-normal">/</span>
+                          <span className="text-slate-400 dark:text-slate-500">{anime.episodes || '?'}</span>
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <button type="button" onClick={() => setSelectedItem(item)} className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#3DB4F2] rounded shadow-sm">Edit</button>
+                        <button type="button" onClick={() => setSelectedItem(item)} className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#3DB4F2] hover:bg-[#3DB4F2]/80 rounded shadow-sm transition-all">
+                          Edit
+                        </button>
                       </td>
                     </tr>
                   );
@@ -141,20 +162,29 @@ export default function WatchlistPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {items.map((item) => {
             const anime = item.anime || item;
             return (
-              <div key={item.id} className="group flex flex-col rounded-xl overflow-hidden bg-white dark:bg-[#151F2E] border border-slate-200/50 shadow-sm">
-                <div className="aspect-[3/4] relative">
-                  <img src={anime.cover_image_url} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <button type="button" onClick={() => setSelectedItem(item)} className="px-3 py-1.5 bg-[#3DB4F2] text-white font-bold text-xs rounded-md">Edit</button>
+              <div key={item.id} className="group relative flex flex-col rounded-xl overflow-hidden bg-white dark:bg-[#151F2E] border border-slate-200/50 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="aspect-[3/4] w-full bg-slate-100 dark:bg-[#0d1728] relative overflow-hidden">
+                  {anime.cover_image_url ? (
+                    <img src={anime.cover_image_url} alt={anime.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-400 font-bold uppercase">No Cover</div>
+                  )}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                    <button type="button" onClick={() => setSelectedItem(item)} className="px-3 py-1.5 bg-[#3DB4F2] text-white font-bold text-xs rounded-md shadow-lg">Quick Edit</button>
                   </div>
                 </div>
-                <div className="p-3">
-                  <Link to={`/anime/${anime.id || item.anime_id}`} className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-[#3DB4F2] line-clamp-1">{anime.title}</Link>
-                  <p className="text-[10px] text-slate-400 mt-1">Eps: {item.episodes_watched || 0}</p>
+                <div className="p-3 flex-1 flex flex-col justify-between bg-slate-50/50 dark:bg-[#1a2635]/50">
+                  <Link to={`/anime/${anime.id || item.anime_id}`} className="text-xs font-extrabold text-slate-700 dark:text-slate-200 hover:text-[#3DB4F2] transition-colors line-clamp-2 min-h-[2rem]">
+                    {anime.title || 'Untitled Anime'}
+                  </Link>
+                  <div className="flex justify-between items-center mt-2.5 text-[11px] font-black text-[#3DB4F2]">
+                    <span>Eps: {item.progress || item.episodes_watched || 0}</span>
+                    <span className="text-slate-400 dark:text-slate-500 font-medium bg-slate-100 dark:bg-[#0d1728] px-1.5 py-0.5 rounded text-[9px]">{anime.type || 'TV'}</span>
+                  </div>
                 </div>
               </div>
             );
@@ -162,7 +192,6 @@ export default function WatchlistPage() {
         </div>
       )}
 
-      {/* Komponen Modal Bersih */}
       <WatchlistUpdateModal
         item={selectedItem}
         isOpen={!!selectedItem}
