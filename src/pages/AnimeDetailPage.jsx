@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast'; 
 import { STATUS_COLORS } from '../utils/constants';
 import { getAnimeById, getRecommendations, addToWatchlist } from "../api/anime.api"; 
-import { createReview } from "../api/review.api"; 
+import { createReview, getReviews } from "../api/review.api";
 import useAuth from '../hooks/useAuth'; // FIX: Impor useAuth untuk mendeteksi status login user
 
 // Komponen Fallback Poster Detail yang Adaptif Light/Dark Mode
@@ -45,11 +45,11 @@ export default function AnimeDetailPage() {
   });
 
   // 2. QUERY DATA REVIEWS
-  const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
-    queryKey: ['anime-reviews', id],
-    queryFn: () => fetch(`http://localhost:3000/api/reviews?anime_id=${id}`).then(res => res.json()),
-    enabled: !!id,
-  });
+const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
+  queryKey: ['anime-reviews', id],
+  queryFn: () => getReviews({ anime_id: id }).then(res => res.data), // 👈 Menggunakan instance API Railway terpadu
+  enabled: !!id,
+});
 
   // 3. QUERY DATA REKOMENDASI BERBASIS GENRE
   const { data: recsResponse } = useQuery({
