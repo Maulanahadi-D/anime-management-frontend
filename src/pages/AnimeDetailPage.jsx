@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom'; // FIX: Ditambahkan useNavigate untuk lempar ke halaman login
+import { useParams, Link, useNavigate } from 'react-router-dom'; 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'; 
 import { toast } from 'react-hot-toast'; 
 import { STATUS_COLORS } from '../utils/constants';
 import { getAnimeById, getRecommendations, addToWatchlist } from "../api/anime.api"; 
-import { createReview, getReviews } from "../api/review.api";
-import useAuth from '../hooks/useAuth'; // FIX: Impor useAuth untuk mendeteksi status login user
+import { createReview, getReviews } from "../api/review.api"; // FIX: Menambahkan getReviews ke dalam named import
+import useAuth from '../hooks/useAuth'; 
 
 // Komponen Fallback Poster Detail yang Adaptif Light/Dark Mode
 function DetailPosterFallback({ title, studio }) {
@@ -24,9 +24,9 @@ function DetailPosterFallback({ title, studio }) {
 
 export default function AnimeDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate(); // FIX: Inisialisasi navigasi rute
+  const navigate = useNavigate(); 
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuth(); // FIX: Ambil status login nyata user platform kamu
+  const { isAuthenticated } = useAuth(); 
 
   const [isImageError, setIsImageError] = useState(false);
   const [visibleReviews, setVisibleReviews] = useState(3);
@@ -45,11 +45,11 @@ export default function AnimeDetailPage() {
   });
 
   // 2. QUERY DATA REVIEWS
-const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
-  queryKey: ['anime-reviews', id],
-  queryFn: () => getReviews({ anime_id: id }).then(res => res.data), // 👈 Menggunakan instance API Railway terpadu
-  enabled: !!id,
-});
+  const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
+    queryKey: ['anime-reviews', id],
+    queryFn: () => getReviews({ anime_id: id }).then(res => res.data), // FIX: Mengganti fetch localhost ke fungsi getReviews terpadu
+    enabled: !!id,
+  });
 
   // 3. QUERY DATA REKOMENDASI BERBASIS GENRE
   const { data: recsResponse } = useQuery({
@@ -138,7 +138,6 @@ const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
               )}
             </div>
             
-            {/* FIX 2: Tombol Watchlist Interaktif Menolak User Anonim */}
             <button
               onClick={() => {
                 if (isAuthenticated) {
@@ -301,7 +300,6 @@ const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
             <div className="border-t border-slate-200 dark:border-slate-800/80 pt-8">
               <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight mb-4">Write a Review</h2>
               
-              {/* FIX 1: Membungkus Form Review berdasarkan status Login (isAuthenticated) */}
               {isAuthenticated ? (
                 <form onSubmit={handleReviewSubmit} className="bg-white dark:bg-[#151F2E] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -346,7 +344,6 @@ const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
                   </div>
                 </form>
               ) : (
-                // Tampilan Fallback Placeholder Cantik jika user belum login
                 <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-100/40 dark:bg-[#151F2E]/10 p-8 text-center transition-all">
                   <div className="text-2xl mb-2">🔒</div>
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">
@@ -442,6 +439,7 @@ const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
                 onClick={() => watchlistMutation.mutate({
                   anime_id: parseInt(id),
                   status: watchlistStatus,
+                  closeModal: true,
                   episodes_watched: episodesWatched
                 })}
                 className="px-5 py-2 text-xs font-bold uppercase tracking-wider bg-[#3db4f2] hover:bg-[#2ca3e2] disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white rounded transition-colors shadow-md"
