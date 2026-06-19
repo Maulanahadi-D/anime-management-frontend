@@ -19,8 +19,8 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
   const animeTitle = animeData?.title || 'Anime';
   const totalEpisodes = animeData?.episodes || 0;
 
-  // SINKRONISASI AKURAT: Ambil murni ID Anime, abaikan primary key ID baris Watchlist
-  const actualAnimeId = item?.anime_id || animeData?.id;
+  // FIX SAKTI: Cek semua kemungkinan struktur ID Anime dari data API kamu
+  const actualAnimeId = item?.anime_id || item?.anime?.id || animeData?.id || item?.id;
 
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
@@ -42,6 +42,10 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
+      // Debugging untuk melihat ID yang terbaca di console log browser
+      console.log("DEBUG DATA ITEM:", item);
+      console.log("TERDETEKSI ANIME ID:", actualAnimeId);
+
       // 1. Kirim update status & progress ke backend
       await updateWatchlist(item.id, {
         status: data.status,
@@ -55,9 +59,9 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
         if (item.review_id) {
           await updateReview(item.review_id, { rating });
         } else {
-          // PROTEKSI TOTAL: Cegah error "Anime ID wajib diisi" & loloskan validasi backend
+          // Jika masih tidak ketemu, lemparkan error lokal agar tidak menembak API backend
           if (!actualAnimeId) {
-            throw new Error('Sistem gagal memetakan ID Anime.');
+            throw new Error('Gagal memetakan ID Anime. Silakan cek console log.');
           }
 
           await createReview({ 
