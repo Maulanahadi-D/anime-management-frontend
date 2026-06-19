@@ -19,6 +19,9 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
   const animeTitle = animeData?.title || 'Anime';
   const totalEpisodes = animeData?.episodes || 0;
 
+  // FIX 1: Kunci penargetan Anime ID secara akurat (Hapus item.id agar tidak bentrok dengan ID Watchlist)
+  const targetAnimeId = item?.anime_id || item?.anime?.id || animeData?.id;
+
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
       status: item?.status || 'Watching',
@@ -40,7 +43,7 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      // 1. Update data watchlist utama ke backend
+      // 1. Update data watchlist utama ke backend (Menggunakan item.id sebagai kunci primary key Watchlist)
       await updateWatchlist(item.id, {
         status: data.status,
         episodes_watched: parseInt(data.episodes_watched, 10) || 0,
@@ -53,14 +56,12 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
           // Jika ulasan sudah ada, cukup perbarui angka rating-nya saja
           await updateReview(item.review_id, { rating });
         } else {
-          // FIX: Amankan pencarian anime_id dari segala bentuk cabang object data frontend kamu
-          const targetAnimeId = item?.anime_id || item?.id || item?.anime?.id;
-          
+          // FIX 2: Validasi kepastian Anime ID sebelum menembak API createReview
           if (!targetAnimeId) {
-            throw new Error('Anime ID tidak terdeteksi di dalam modal data.');
+            throw new Error('Gagal mendeteksi Anime ID yang valid untuk membuat ulasan.');
           }
 
-          // FIX: Kirim ulasan lengkap beserta comment default agar lolos validasi NOT NULL / REQUIRED di database backend kamu
+          // Kirim ulasan lengkap beserta comment default agar lolos validasi database backend kamu
           await createReview({ 
             anime_id: parseInt(targetAnimeId, 10), 
             rating: rating,
