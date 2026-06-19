@@ -91,8 +91,8 @@ export default function AnimeDetailPage() {
       return;
     }
     reviewMutation.mutate({
-      anime_id: parseInt(id),
-      rating: parseInt(newRating),
+      anime_id: parseInt(id, 10),
+      rating: parseInt(newRating, 10),
       comment: newComment
     });
   };
@@ -405,21 +405,7 @@ export default function AnimeDetailPage() {
                   min="0"
                   max={anime.episodes || 999}
                   value={episodesWatched}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === '') {
-                      setEpisodesWatched('');
-                    } else {
-                      const parsed = parseInt(val, 10) || 0;
-                      const clampedValue = Math.max(0, parsed);
-                      
-                      if (anime.episodes && clampedValue > anime.episodes) {
-                        setEpisodesWatched(anime.episodes);
-                      } else {
-                        setEpisodesWatched(clampedValue);
-                      }
-                    }
-                  }}
+                  onChange={(e) => setEpisodesWatched(e.target.value)} // FIX 1: Menyimpan state string/angka murni agar form tidak pecah
                   className="w-full bg-white dark:bg-[#152232] border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#3db4f2] dark:focus:border-[#3db4f2] transition-colors font-medium"
                 />
               </div>
@@ -437,9 +423,9 @@ export default function AnimeDetailPage() {
                 type="button"
                 disabled={watchlistMutation.isPending}
                 onClick={() => watchlistMutation.mutate({
-                  anime_id: parseInt(id),
+                  anime_id: parseInt(id, 10),
                   status: watchlistStatus,
-                  episodesWatched: episodesWatched // FIX: Diubah ke CamelCase 'episodesWatched' agar sinkron dengan backend
+                  episodes_watched: parseInt(episodesWatched, 10) || 0 // FIX 2: Dikirim tepat sebagai integer murni ke parameter 'episodes_watched' backend kamu
                 })}
                 className="px-5 py-2 text-xs font-bold uppercase tracking-wider bg-[#3db4f2] hover:bg-[#2ca3e2] disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white rounded transition-colors shadow-md"
               >
