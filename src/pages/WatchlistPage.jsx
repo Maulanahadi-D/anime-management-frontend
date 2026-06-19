@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query'; // FIX 1: Import useQueryClient untuk refresh data otomatis
 import useWatchlist from '../hooks/useWatchlist';
 import WatchlistUpdateModal from '../components/watchlist/WatchlistUpdateModal';
 import Spinner from '../components/ui/Spinner';
@@ -23,6 +24,7 @@ const TABS = [
 ];
 
 export default function WatchlistPage() {
+  const queryClient = useQueryClient(); // FIX 2: Inisialisasi queryClient
   const { data, isLoading, isError } = useWatchlist();
   const [activeTab, setActiveTab] = useState('watching');
   const [selectedItem, setSelectedItem] = useState(null);
@@ -174,7 +176,7 @@ export default function WatchlistPage() {
                       <td className="py-3.5 px-4 hidden md:table-cell text-xs font-medium text-slate-400 truncate max-w-[140px]">{anime.studio || 'Unknown Studio'}</td>
                       <td className="py-3.5 px-4 text-center">
                         <div className="inline-flex items-center justify-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/40 px-2 py-1 rounded border border-slate-100 dark:border-slate-800/50 min-w-[70px]">
-                          <span>{item.progress || 0}</span>
+                          <span>{item.progress || item.episodes_watched || 0}</span>
                           <span className="text-slate-300 dark:text-slate-600 font-normal">/</span>
                           <span className="text-slate-400 dark:text-slate-500">{anime.episodes || '?'}</span>
                         </div>
@@ -192,7 +194,7 @@ export default function WatchlistPage() {
           </div>
         </div>
       ) : (
-        /* ─── OPTION 2: CARD GRID VIEW MODE (Sesuai Gambar Premium Kamu) ─── */
+        /* ─── OPTION 2: CARD GRID VIEW MODE ─── */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {items.map((item) => {
             const anime = item.anime || item;
@@ -240,7 +242,7 @@ export default function WatchlistPage() {
                   
                   {/* Info Progress Angka Biru di Kiri & Kanan */}
                   <div className="flex justify-between items-center mt-2.5 text-[11px] font-black text-[#3DB4F2]">
-                    <span>Eps: {item.progress || 0}</span>
+                    <span>Eps: {item.progress || item.episodes_watched || 0}</span>
                     <span className="text-slate-400 dark:text-slate-500 font-medium bg-slate-100 dark:bg-[#0d1728] px-1.5 py-0.5 rounded text-[9px]">
                       {anime.type || 'TV'}
                     </span>
@@ -252,11 +254,21 @@ export default function WatchlistPage() {
         </div>
       )}
 
-      {/* Modal Bawaan Asli */}
+      {/* Modal Bawaan Asli dengan Interseptor Sinkronisasi Payload */}
       <WatchlistUpdateModal
-        item={selectedItem}
+        item={selectedItem ? {
+          ...selectedItem,
+          // FIX 3: Duplikasi struktur data agar klop dengan parameter input di komponen modal kamu
+          episodes_watched: parseInt(selectedItem.progress || selectedItem.episodes_watched || 0, 10),
+          episodesWatched: parseInt(selectedItem.progress || selectedItem.episodes_watched || 0, 10),
+          progress: parseInt(selectedItem.progress || selectedItem.episodes_watched || 0, 10)
+        } : null}
         isOpen={!!selectedItem}
-        onClose={() => setSelectedItem(null)}
+        onClose={() => {
+          setSelectedItem(null);
+          // FIX 4: Paksa pemicuan penarikan ulang data terbaru ke Railway tiap modal ditutup
+          queryClient.invalidateQueries({ queryKey: ["watchlist"] });
+        }}
       />
     </div>
   );
