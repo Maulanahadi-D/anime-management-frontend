@@ -16,7 +16,6 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
 
   // Mengambil data anime baik dari inner object (item.anime) maupun flat object
   const animeData = item?.anime || item || {};
-  const animeId = item?.anime_id || item?.id || animeData?.id;
   const animeTitle = animeData?.title || 'Anime';
   const totalEpisodes = animeData?.episodes || 0;
 
@@ -28,7 +27,7 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
     },
   });
 
-  // FIX: Memaksa form untuk me-reset nilai inputnya setiap kali modal dibuka dengan data anime baru
+  // Memaksa form untuk me-reset nilai inputnya setiap kali modal dibuka dengan data anime baru
   useEffect(() => {
     if (item) {
       reset({
@@ -51,13 +50,22 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
       if (data.rating) {
         const rating = parseInt(data.rating, 10);
         if (item.review_id) {
+          // Jika ulasan sudah ada, cukup perbarui angka rating-nya saja
           await updateReview(item.review_id, { rating });
         } else {
-          // FIX: Mengamankan anime_id agar tidak undefined sewaktu membuat ulasan baru
-          if (!animeId) {
-            throw new Error('ID Anime gagal dideteksi oleh sistem frontend.');
+          // FIX: Amankan pencarian anime_id dari segala bentuk cabang object data frontend kamu
+          const targetAnimeId = item?.anime_id || item?.id || item?.anime?.id;
+          
+          if (!targetAnimeId) {
+            throw new Error('Anime ID tidak terdeteksi di dalam modal data.');
           }
-          await createReview({ anime_id: parseInt(animeId, 10), rating });
+
+          // FIX: Kirim ulasan lengkap beserta comment default agar lolos validasi NOT NULL / REQUIRED di database backend kamu
+          await createReview({ 
+            anime_id: parseInt(targetAnimeId, 10), 
+            rating: rating,
+            comment: "Memberikan rating melalui My Watchlist."
+          });
         }
       }
     },
