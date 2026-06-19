@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/* ── Dark-mode variant: triggered by .dark class on <html> ── */
+@variant dark (&:where(.dark, .dark *));
+
+/* ── Design token palette ── */
+@theme {
+  --color-anilist-bg:     #0B1622;
+  --color-anilist-card:   #151F2E;
+  --color-anilist-border: #1e2d45;
+  --color-anilist-accent: #3DB4F2;
+  --color-anilist-muted:  #8ba3bc;
+
+  --color-light-bg:       #FAFAFA;
+  --color-light-card:     #FFFFFF;
+  --color-light-border:   #E2E8F0;
+  --color-light-muted:    #64748B;
+}
+
+/* ── Base layer: light mode defaults, dark mode overrides ── */
+html {
+  background-color: var(--color-light-bg);
+  color: #1e293b;
+}
+
+html.dark {
+  background-color: var(--color-anilist-bg);
+  color: #e2e8f0;
+}
+
+body {
+  @apply antialiased transition-colors duration-200;
+  background-color: inherit;
+  color: inherit;
+}
