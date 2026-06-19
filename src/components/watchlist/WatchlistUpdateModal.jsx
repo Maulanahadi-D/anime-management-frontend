@@ -14,12 +14,12 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
   const queryClient = useQueryClient();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Deteksi data penunjang anime secara berjenjang
+  // Amankan pembacaan data, fleksibel apakah datanya flat atau nested dari API backend lu
   const animeData = item?.anime || item || {};
-  const animeTitle = animeData?.title || 'Anime';
-  const totalEpisodes = animeData?.episodes || 0;
+  const animeTitle = animeData?.title || item?.title || 'Anime';
+  const totalEpisodes = animeData?.episodes || item?.episodes || 0;
 
-  // FIX SAKTI: Cek semua kemungkinan struktur ID Anime dari data API kamu
+  // FIX ABSOLUT: Ambil anime_id murni dari root item, inner object, atau fallback ke item.id jika flat
   const actualAnimeId = item?.anime_id || item?.anime?.id || animeData?.id || item?.id;
 
   const { register, handleSubmit, reset } = useForm({
@@ -42,33 +42,38 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      // Debugging untuk melihat ID yang terbaca di console log browser
-      console.log("DEBUG DATA ITEM:", item);
-      console.log("TERDETEKSI ANIME ID:", actualAnimeId);
-
-      // 1. Kirim update status & progress ke backend
+      // 1. Eksekusi update data watchlist utama (menggunakan primary key ID watchlist)
       await updateWatchlist(item.id, {
         status: data.status,
         episodes_watched: parseInt(data.episodes_watched, 10) || 0,
       });
 
-      // 2. Jika ada data rating baru yang disubmit
+      // 2. Jika user mengisi rating, proses ulasannya
       if (data.rating) {
         const rating = parseInt(data.rating, 10);
         
-        if (item.review_id) {
-          await updateReview(item.review_id, { rating });
-        } else {
-          // Jika masih tidak ketemu, lemparkan error lokal agar tidak menembak API backend
-          if (!actualAnimeId) {
-            throw new Error('Gagal memetakan ID Anime. Silakan cek console log.');
-          }
+        try {
+          if (item.review_id) {
+            await updateReview(item.review_id, { rating });
+          } else {
+            // Amankan validasi anime_id sebelum menembak API backend review
+            const finalAnimeId = parseInt(actualAnimeId, 10);
+            
+            if (!finalAnimeId || isNaN(finalAnimeId)) {
+              console.error("Gagal memetakan ID Anime untuk ulasan. Data item murni:", item);
+              throw new Error('Anime ID tidak valid atau kosong.');
+            }
 
-          await createReview({ 
-            anime_id: parseInt(actualAnimeId, 10), 
-            rating: rating,
-            comment: "Memberikan rating cepat melalui menu koleksi."
-          });
+            await createReview({ 
+              anime_id: finalAnimeId, 
+              rating: rating,
+              comment: "Memberikan rating melalui list koleksi."
+            });
+          }
+        } catch (reviewError) {
+          // Cegah error review membatalkan atau memicu pop-up merah besar untuk watchlist
+          console.error("Gagal memproses rating/review:", reviewError);
+          throw new Error(reviewError.response?.data?.error || 'Watchlist aman, namun gagal menyimpan rating.');
         }
       }
     },
@@ -107,6 +112,7 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
             <option key={s} value={s}>{s}</option>
           ))}
         </Select>
+        
         <Input
           label={`Episode Ditonton (max ${totalEpisodes || '?'})`}
           type="number"
@@ -114,6 +120,7 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
           max={totalEpisodes || undefined}
           {...register('episodes_watched')}
         />
+        
         <Input
           label="Rating Anda (1-10)"
           type="number"
@@ -122,8 +129,11 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
           placeholder="Opsional"
           {...register('rating')}
         />
+        
         <div className="flex justify-between pt-2">
-          <Button type="button" variant="danger" onClick={handleDelete} isLoading={isDeleting}>Hapus</Button>
+          <Button type="button" variant="danger" onClick={handleDelete} isLoading={isDeleting}>
+            Hapus
+          </Button>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Batal</Button>
             <Button type="submit" isLoading={mutation.isPending}>Simpan</Button>
