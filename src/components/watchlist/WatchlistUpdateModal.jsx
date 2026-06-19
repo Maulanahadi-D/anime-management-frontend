@@ -14,13 +14,13 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
   const queryClient = useQueryClient();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Mengambil data anime baik dari inner object (item.anime) maupun flat object
+  // Deteksi data penunjang anime secara berjenjang
   const animeData = item?.anime || item || {};
   const animeTitle = animeData?.title || 'Anime';
   const totalEpisodes = animeData?.episodes || 0;
 
-  // FIX 1: Kunci penargetan Anime ID secara akurat (Hapus item.id agar tidak bentrok dengan ID Watchlist)
-  const targetAnimeId = item?.anime_id || item?.anime?.id || animeData?.id;
+  // SINKRONISASI AKURAT: Ambil murni ID Anime, abaikan primary key ID baris Watchlist
+  const actualAnimeId = item?.anime_id || animeData?.id;
 
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
@@ -30,7 +30,6 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
     },
   });
 
-  // Memaksa form untuk me-reset nilai inputnya setiap kali modal dibuka dengan data anime baru
   useEffect(() => {
     if (item) {
       reset({
@@ -43,29 +42,28 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      // 1. Update data watchlist utama ke backend (Menggunakan item.id sebagai kunci primary key Watchlist)
+      // 1. Kirim update status & progress ke backend
       await updateWatchlist(item.id, {
         status: data.status,
         episodes_watched: parseInt(data.episodes_watched, 10) || 0,
       });
 
-      // 2. Jika user mengisi rating, kelola pengiriman ulasannya secara aman
+      // 2. Jika ada data rating baru yang disubmit
       if (data.rating) {
         const rating = parseInt(data.rating, 10);
+        
         if (item.review_id) {
-          // Jika ulasan sudah ada, cukup perbarui angka rating-nya saja
           await updateReview(item.review_id, { rating });
         } else {
-          // FIX 2: Validasi kepastian Anime ID sebelum menembak API createReview
-          if (!targetAnimeId) {
-            throw new Error('Gagal mendeteksi Anime ID yang valid untuk membuat ulasan.');
+          // PROTEKSI TOTAL: Cegah error "Anime ID wajib diisi" & loloskan validasi backend
+          if (!actualAnimeId) {
+            throw new Error('Sistem gagal memetakan ID Anime.');
           }
 
-          // Kirim ulasan lengkap beserta comment default agar lolos validasi database backend kamu
           await createReview({ 
-            anime_id: parseInt(targetAnimeId, 10), 
+            anime_id: parseInt(actualAnimeId, 10), 
             rating: rating,
-            comment: "Memberikan rating melalui My Watchlist."
+            comment: "Memberikan rating cepat melalui menu koleksi."
           });
         }
       }
@@ -105,7 +103,6 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
             <option key={s} value={s}>{s}</option>
           ))}
         </Select>
-        
         <Input
           label={`Episode Ditonton (max ${totalEpisodes || '?'})`}
           type="number"
@@ -113,7 +110,6 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
           max={totalEpisodes || undefined}
           {...register('episodes_watched')}
         />
-        
         <Input
           label="Rating Anda (1-10)"
           type="number"
@@ -122,11 +118,8 @@ export default function WatchlistUpdateModal({ item, isOpen, onClose }) {
           placeholder="Opsional"
           {...register('rating')}
         />
-        
         <div className="flex justify-between pt-2">
-          <Button type="button" variant="danger" onClick={handleDelete} isLoading={isDeleting}>
-            Hapus
-          </Button>
+          <Button type="button" variant="danger" onClick={handleDelete} isLoading={isDeleting}>Hapus</Button>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Batal</Button>
             <Button type="submit" isLoading={mutation.isPending}>Simpan</Button>
