@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast'; 
 import { STATUS_COLORS } from '../utils/constants';
 import { getAnimeById, getRecommendations, addToWatchlist } from "../api/anime.api"; 
-import { createReview, getReviews } from "../api/review.api"; // FIX: Menambahkan getReviews ke dalam named import
+import { createReview, getReviews } from "../api/review.api"; 
 import useAuth from '../hooks/useAuth'; 
 
 // Komponen Fallback Poster Detail yang Adaptif Light/Dark Mode
@@ -47,7 +47,7 @@ export default function AnimeDetailPage() {
   // 2. QUERY DATA REVIEWS
   const { data: reviewsResponse, isLoading: isReviewsLoading } = useQuery({
     queryKey: ['anime-reviews', id],
-    queryFn: () => getReviews({ anime_id: id }).then(res => res.data), // FIX: Mengganti fetch localhost ke fungsi getReviews terpadu
+    queryFn: () => getReviews({ anime_id: id }).then(res => res.data),
     enabled: !!id,
   });
 
@@ -439,8 +439,7 @@ export default function AnimeDetailPage() {
                 onClick={() => watchlistMutation.mutate({
                   anime_id: parseInt(id),
                   status: watchlistStatus,
-                  closeModal: true,
-                  episodes_watched: episodesWatched
+                  episodesWatched: episodesWatched // FIX: Diubah ke CamelCase 'episodesWatched' agar sinkron dengan backend
                 })}
                 className="px-5 py-2 text-xs font-bold uppercase tracking-wider bg-[#3db4f2] hover:bg-[#2ca3e2] disabled:bg-slate-400 dark:disabled:bg-slate-700 text-white rounded transition-colors shadow-md"
               >
